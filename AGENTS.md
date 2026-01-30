@@ -28,6 +28,7 @@ Keep these docs updated whenever runtime behavior or module boundaries change.
 - TypeScript everywhere; prefer explicit types and narrow interfaces.
 - Keep features in “slices” (feature folder owns UI + state + data access).
 - Prefer simple dependencies; avoid adding libraries unless needed.
+- When building UI, refer to `docs/design.md`.
 - No logging of raw journal text or PII in production logs.
 
 ## Commands (keep updated)

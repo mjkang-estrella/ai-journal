@@ -1,109 +1,75 @@
+import { SafeAreaView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Button } from "@/components/Button";
-import { Screen } from "@/components/Screen";
-import { TextField } from "@/components/TextField";
-import { useAuth } from "@/state/auth";
+import { Button } from "@/ui/Button";
+import { Card } from "@/ui/Card";
+import { Text } from "@/ui/Text";
+import { colors, spacing } from "@/theme/tokens";
+import { useOnboarding } from "@/state/onboarding";
 
 export function OnboardingScreen() {
   const router = useRouter();
-  const { session, signIn, signUp } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { completeOnboarding, loading } = useOnboarding();
 
-  useEffect(() => {
-    if (session) {
-      router.replace("/journal");
-    }
-  }, [session, router]);
-
-  const handleSignIn = async () => {
-    setLoading(true);
-    setMessage(null);
-    const result = await signIn(email.trim(), password);
-    setLoading(false);
-
-    if (result.error) {
-      setMessage(result.error);
-      return;
-    }
-
-    router.replace("/journal");
-  };
-
-  const handleSignUp = async () => {
-    setLoading(true);
-    setMessage(null);
-    const result = await signUp(email.trim(), password);
-    setLoading(false);
-
-    if (result.error) {
-      setMessage(result.error);
-      return;
-    }
-
-    setMessage("Check your email to confirm your account, then sign in.");
+  const handleContinue = async () => {
+    await completeOnboarding();
+    router.replace("/(tabs)/home");
   };
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>Welcome to Journal2</Text>
-        <Text style={styles.subtitle}>Sign in to start your session.</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text variant="title">Welcome to Journal2</Text>
+          <Text tone="secondary">
+            A calm space to write, reflect, and notice patterns over time.
+          </Text>
+        </View>
+
+        <Card>
+          <View style={styles.cardStack}>
+            <Text variant="subtitle">What to expect</Text>
+            <Text tone="secondary">
+              Start with a few sentences, then answer one thoughtful follow-up.
+            </Text>
+            <Text tone="secondary">
+              We will help summarize your day and surface gentle insights.
+            </Text>
+          </View>
+        </Card>
+
+        <View style={styles.footer}>
+          <Button
+            label={loading ? "Loading..." : "Get started"}
+            onPress={handleContinue}
+            disabled={loading}
+          />
+          <Text tone="muted">
+            You can update reminders and privacy settings anytime.
+          </Text>
+        </View>
       </View>
-
-      <TextField
-        label="Email"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="you@example.com"
-      />
-      <TextField
-        label="Password"
-        value={password}
-        onChangeText={setPassword}
-        placeholder="Minimum 6 characters"
-        secureTextEntry
-      />
-
-      {message ? <Text style={styles.message}>{message}</Text> : null}
-
-      <View style={styles.actions}>
-        <Button label="Sign In" onPress={handleSignIn} disabled={loading} />
-        <Button
-          label="Create Account"
-          onPress={handleSignUp}
-          disabled={loading}
-          variant="secondary"
-        />
-      </View>
-    </Screen>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
+    padding: spacing.lg,
+    gap: spacing.lg,
+    justifyContent: "space-between",
+  },
   header: {
-    gap: 6,
+    gap: spacing.sm,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
+  cardStack: {
+    gap: spacing.sm,
   },
-  subtitle: {
-    fontSize: 15,
-    color: "#4B5563",
-  },
-  message: {
-    color: "#B45309",
-    backgroundColor: "#FEF3C7",
-    padding: 10,
-    borderRadius: 8,
-  },
-  actions: {
-    gap: 12,
+  footer: {
+    gap: spacing.sm,
   },
 });
