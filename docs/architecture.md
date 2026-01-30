@@ -19,7 +19,7 @@ Audio is explicitly out of scope for the MVP.
   - detected signals (energy/stress/avoidance patterns),
   - ME Database updates (profile/state/patterns/trust calibration),
   - optional 0–3 tiny suggestions.
-- Offline-first on device for MVP; cloud sync can be layered later.
+- Cloud-first: all journaling data is stored in the backend database.
 
 ## Non-goals for MVP
 
@@ -33,8 +33,8 @@ Audio is explicitly out of scope for the MVP.
 
 1) **Mobile app (Expo + TypeScript)**
 - UI flows: onboarding, journaling session, history, settings.
-- Local persistence: SQLite (expo-sqlite).
-- “Mock AI mode” so the UX is testable without a backend.
+- Remote persistence: Supabase Postgres (source of truth).
+- Local draft cache is allowed for UX, but not the primary store.
 
 2) **Backend AI Gateway**
 - Single responsibility: handle LLM calls and pipeline orchestration.
@@ -42,8 +42,8 @@ Audio is explicitly out of scope for the MVP.
 - Produces strict JSON outputs that are schema-validated.
 
 3) **Persistence**
-- MVP local DB is source of truth.
-- Backend storage is optional in MVP; if enabled, store only what you decide (raw text vs derived summaries).
+- Supabase Postgres is the source of truth for all journaling data.
+- Store raw journal text and derived artifacts (summaries, ME DB) in the database.
 
 4) **Runtime AI modules (conceptual)**
 - Context Reader
@@ -75,7 +75,7 @@ flowchart LR
   F --> G[Daily Summary + ME Updates]
   G --> H[Advisor Suggestions]
   H --> I[UI shows Summary + Suggestions]
-  G --> J[(Local DB)]
+  G --> J[(Supabase DB)]
   E --> J
   A --> J
   ```
@@ -103,7 +103,7 @@ flowchart LR
 ### State management (recommended)
 - **Session state** (local store): current sessionId, current draft text, last question, questions history, whether the last question is answered.
 - **Data state** (React Query): history list, session details, summaries, ME DB read/write.
-- **Persistence**: SQLite repositories provide typed CRUD functions.
+- **Persistence**: Supabase client with typed queries and a small local cache for drafts.
 
 ### Session State Machine
 
@@ -122,13 +122,13 @@ Notes:
 - MVP can trigger questions only via a button (“Next question”).
 - Later you can add a pause-based heuristic (e.g., 2–4 seconds idle) if desired.
 
-## Local data model
+## Database schema (Supabase Postgres)
 
 Keep schema simple and evolve later. Suggested tables:
 
 ### `journal_sessions`
 - id (uuid)
-- user_id (nullable for guest mode)
+- user_id (uuid)
 - started_at (iso)
 - ended_at (iso, nullable)
 - status (draft | completed)
@@ -157,14 +157,14 @@ Keep schema simple and evolve later. Suggested tables:
 - summary_json (string JSON)
 
 ### me_db
-- user_id (nullable for guest mode)
+- user_id (uuid)
 - profile_json (string JSON)
 - state_json (string JSON)
 - patterns_json (string JSON)
 - trust_json (string JSON)
 - updated_at (iso)
 
-## Backend architecture
+## Backend architecture (Supabase + TypeScript)
 
 ### Why a backend even for MVP
 - Avoid shipping model keys to client.
@@ -172,7 +172,7 @@ Keep schema simple and evolve later. Suggested tables:
 - Enable consistent behavior across clients and future platforms.
 
 ### Endpoint contract
-We can start with a single endpoint:
+We can start with a single endpoint (Supabase Edge Function):
 
 `POST /ai/runPipeline`
 
